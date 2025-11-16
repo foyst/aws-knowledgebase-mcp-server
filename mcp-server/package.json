@@ -17,6 +17,8 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.922.0",
     "@modelcontextprotocol/sdk": "^1.21.0",
+    "@types/express": "^5.0.5",
+    "express": "^5.1.0",
     "zod": "^3.25.76"
   }
 }

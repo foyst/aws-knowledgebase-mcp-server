@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-// import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import express from "express";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   BedrockAgentRuntimeClient,
@@ -161,9 +163,33 @@ async function retrieveContext(
 
 // Server startup
 async function runServer() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.info("AWS KB Retrieval Server running on stdio");
+  if (process.env.REMOTE_MCP) {
+    // Use HTTP transport when REMOTE_MCP is set
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const app = express();
+
+    app.use(express.json());
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+
+    await server.connect(transport);
+
+    // Handle MCP requests
+    app.all("/mcp", async (req, res) => {
+      await transport.handleRequest(req, res);
+    });
+
+    app.listen(port, () => {
+      console.info(`AWS KB Retrieval Server running on HTTP at port ${port}`);
+    });
+  } else {
+    // Use STDIO transport by default
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.info("AWS KB Retrieval Server running on stdio");
+  }
 }
 
 runServer().catch((error) => {
