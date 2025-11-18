@@ -10,7 +10,7 @@ import {
   type RetrieveCommandInput,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 
-const server = new McpServer({
+export const server = new McpServer({
   name: "aws-knowledge-base",
   version: "1.0.0",
 });
@@ -72,27 +72,37 @@ if (!process.env.AWS_REGION) {
   console.error("AWS_REGION is not set in environment variables.");
   process.exit(1);
 }
-if (!process.env.AWS_ACCESS_KEY_ID) {
-  console.error("AWS_ACCESS_KEY_ID is not set in environment variables.");
-  process.exit(1);
-}
-if (!process.env.AWS_SECRET_ACCESS_KEY) {
-  console.error("AWS_SECRET_ACCESS_KEY is not set in environment variables.");
-  process.exit(1);
-}
-if (!process.env.AWS_SESSION_TOKEN) {
-  console.error("AWS_SESSION_TOKEN is not set in environment variables.");
-  process.exit(1);
+
+// Check for explicit credentials only when not in Lambda
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+if (!isLambda) {
+  if (!process.env.AWS_ACCESS_KEY_ID) {
+    console.error("AWS_ACCESS_KEY_ID is not set in environment variables.");
+    process.exit(1);
+  }
+  if (!process.env.AWS_SECRET_ACCESS_KEY) {
+    console.error("AWS_SECRET_ACCESS_KEY is not set in environment variables.");
+    process.exit(1);
+  }
+  if (!process.env.AWS_SESSION_TOKEN) {
+    console.error("AWS_SESSION_TOKEN is not set in environment variables.");
+    process.exit(1);
+  }
 }
 
 // AWS client initialization
+// In Lambda, credentials are automatically provided via IAM role
 const bedrockClient = new BedrockAgentRuntimeClient({
   region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    sessionToken: process.env.AWS_SESSION_TOKEN,
-  },
+  ...(isLambda
+    ? {}
+    : {
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          sessionToken: process.env.AWS_SESSION_TOKEN,
+        },
+      }),
 });
 
 const knowledgeBaseId = process.env.AWS_BEDROCK_KNOWLEDGE_BASE_ID;
@@ -160,39 +170,3 @@ async function retrieveContext(
     return { context: "", isRagWorking: false, ragSources: [] };
   }
 }
-
-// Server startup
-async function runServer() {
-  if (process.env.REMOTE_MCP) {
-    // Use HTTP transport when REMOTE_MCP is set
-    const port = parseInt(process.env.PORT || "3000", 10);
-    const app = express();
-
-    app.use(express.json());
-
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-    });
-
-    await server.connect(transport);
-
-    // Handle MCP requests
-    app.all("/mcp", async (req, res) => {
-      await transport.handleRequest(req, res);
-    });
-
-    app.listen(port, () => {
-      console.info(`AWS KB Retrieval Server running on HTTP at port ${port}`);
-    });
-  } else {
-    // Use STDIO transport by default
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.info("AWS KB Retrieval Server running on stdio");
-  }
-}
-
-runServer().catch((error) => {
-  console.error("Fatal error running server:", error);
-  process.exit(1);
-});

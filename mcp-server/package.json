@@ -10,12 +10,14 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.157",
     "@types/node": "^24.10.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.922.0",
+    "@codegenie/serverless-express": "^4.17.0",
     "@modelcontextprotocol/sdk": "^1.21.0",
     "@types/express": "^5.0.5",
     "express": "^5.1.0",

@@ -9,6 +9,11 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
+    "McpServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />

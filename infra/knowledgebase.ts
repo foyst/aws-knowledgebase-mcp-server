@@ -72,6 +72,21 @@ const bedrockS3Policy = new aws.iam.Policy("BedrockKbRolePolicy", {
   },
 });
 
+const bedrockEmbeddingsPolicy = new aws.iam.Policy("BedrockEmbeddingsPolicy", {
+  policy: {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: ["bedrock:InvokeModel"],
+        Resource: [
+          "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
+        ],
+      },
+    ],
+  },
+});
+
 const bedrockAossPolicy = new aws.iam.Policy("BedrockAossPolicy", {
   policy: {
     Version: "2012-10-17",
@@ -106,6 +121,10 @@ export const bedrockRole = new aws.iam.Role("BedrockKbRole", {
     {
       name: "BedrockKbRoleS3PolicyAttachment",
       policy: bedrockS3Policy.policy,
+    },
+    {
+      name: "BedrockKbRoleEmbeddingsPolicyAttachment",
+      policy: bedrockEmbeddingsPolicy.policy,
     },
   ],
 });
@@ -181,7 +200,19 @@ const bedrockIndex = new awsNative.opensearchserverless.Index(
           type: "text",
           index: false,
         },
+        AMAZON_BEDROCK_TEXT: {
+          type: "text",
+        },
         AMAZON_BEDROCK_TEXT_CHUNK: {
+          type: "text",
+        },
+        id: {
+          type: "text",
+        },
+        "x-amz-bedrock-kb-data-source-id": {
+          type: "text",
+        },
+        "x-amz-bedrock-kb-source-uri": {
           type: "text",
         },
       },
@@ -195,7 +226,7 @@ const bedrockIndex = new awsNative.opensearchserverless.Index(
   }
 );
 
-const knowledgebase = new aws.bedrock.AgentKnowledgeBase(
+export const knowledgebase = new aws.bedrock.AgentKnowledgeBase(
   "AgentKnowledgeBase",
   {
     name: "example",
@@ -214,7 +245,7 @@ const knowledgebase = new aws.bedrock.AgentKnowledgeBase(
         vectorIndexName: "bedrock-knowledge-base-default-index",
         fieldMapping: {
           vectorField: "bedrock-knowledge-base-default-vector",
-          textField: "AMAZON_BEDROCK_TEXT_CHUNK",
+          textField: "AMAZON_BEDROCK_TEXT",
           metadataField: "AMAZON_BEDROCK_METADATA",
         },
       },
