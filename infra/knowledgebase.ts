@@ -5,12 +5,12 @@ import * as time from "@pulumiverse/time";
 const encryptionSecurityPolicy = new aws.opensearch.ServerlessSecurityPolicy(
   "EncryptionSecurityPolicy",
   {
-    name: "bedrock-kb-collection-encryption",
+    name: `kb-collection-enc-${$app.stage}`,
     type: "encryption",
     policy: JSON.stringify({
       Rules: [
         {
-          Resource: ["collection/bedrock-kb-collection"],
+          Resource: [`collection/bedrock-kb-collection-${$app.stage}`],
           ResourceType: "collection",
         },
       ],
@@ -22,7 +22,7 @@ const encryptionSecurityPolicy = new aws.opensearch.ServerlessSecurityPolicy(
 const networkSecurityPolicy = new aws.opensearch.ServerlessSecurityPolicy(
   "NetworkSecurityPolicy",
   {
-    name: "bedrock-kb-collection-network",
+    name: `kb-collection-net-${$app.stage}`,
     type: "network",
     description: "Public access",
     policy: JSON.stringify([
@@ -32,11 +32,11 @@ const networkSecurityPolicy = new aws.opensearch.ServerlessSecurityPolicy(
         Rules: [
           {
             ResourceType: "collection",
-            Resource: ["collection/bedrock-kb-collection"],
+            Resource: [`collection/bedrock-kb-collection-${$app.stage}`],
           },
           {
             ResourceType: "dashboard",
-            Resource: ["collection/bedrock-kb-collection"],
+            Resource: [`collection/bedrock-kb-collection-${$app.stage}`],
           },
         ],
         AllowFromPublic: true,
@@ -46,15 +46,17 @@ const networkSecurityPolicy = new aws.opensearch.ServerlessSecurityPolicy(
 );
 
 const collection = new aws.opensearch.ServerlessCollection(
-  "vectorCollection",
+  "VectorCollection",
   {
-    name: "bedrock-kb-collection",
+    name: `bedrock-kb-collection-${$app.stage}`,
     type: "VECTORSEARCH",
   },
   { dependsOn: [encryptionSecurityPolicy, networkSecurityPolicy] }
 );
 
-const knowledgeBaseBucket = new sst.aws.Bucket("KnowledgeBaseBucket");
+const knowledgeBaseBucket = new sst.aws.Bucket(
+  `KnowledgeBaseBucket-${$app.stage}`
+);
 
 const bedrockS3Policy = new aws.iam.Policy("BedrockKbRolePolicy", {
   policy: {
@@ -72,6 +74,8 @@ const bedrockS3Policy = new aws.iam.Policy("BedrockKbRolePolicy", {
   },
 });
 
+const embeddingsModel =
+  "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0";
 const bedrockEmbeddingsPolicy = new aws.iam.Policy("BedrockEmbeddingsPolicy", {
   policy: {
     Version: "2012-10-17",
@@ -79,9 +83,7 @@ const bedrockEmbeddingsPolicy = new aws.iam.Policy("BedrockEmbeddingsPolicy", {
       {
         Effect: "Allow",
         Action: ["bedrock:InvokeModel"],
-        Resource: [
-          "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
-        ],
+        Resource: [embeddingsModel],
       },
     ],
   },
@@ -143,7 +145,7 @@ const current = aws.getCallerIdentity({});
 const dataAccessPolicy = new aws.opensearch.ServerlessAccessPolicy(
   "dataAccessPolicy",
   {
-    name: "bedrock-kb-collection",
+    name: `bedrock-kb-collection-${$app.stage}`,
     type: "data",
     description: "read and write permissions",
     policy: pulumi
@@ -154,12 +156,12 @@ const dataAccessPolicy = new aws.opensearch.ServerlessAccessPolicy(
             Rules: [
               {
                 ResourceType: "index",
-                Resource: ["index/bedrock-kb-collection/*"],
+                Resource: [`index/bedrock-kb-collection-${$app.stage}/*`],
                 Permission: ["aoss:*"],
               },
               {
                 ResourceType: "collection",
-                Resource: ["collection/bedrock-kb-collection"],
+                Resource: [`collection/bedrock-kb-collection-${$app.stage}`],
                 Permission: ["aoss:*"],
               },
             ],
@@ -172,7 +174,7 @@ const dataAccessPolicy = new aws.opensearch.ServerlessAccessPolicy(
 );
 
 const bedrockIndex = new awsNative.opensearchserverless.Index(
-  "bedrockIndex",
+  "BedrockIndex",
   {
     collectionEndpoint: collection.collectionEndpoint,
     indexName: "bedrock-knowledge-base-default-index",
@@ -219,22 +221,18 @@ const bedrockIndex = new awsNative.opensearchserverless.Index(
     },
   },
   {
-    dependsOn: [
-      // collection\
-      dataAccessPolicy,
-    ],
+    dependsOn: [dataAccessPolicy],
   }
 );
 
 export const knowledgebase = new aws.bedrock.AgentKnowledgeBase(
   "AgentKnowledgeBase",
   {
-    name: "example",
+    name: `bedrock-kb-${$app.stage}`,
     roleArn: bedrockRole.arn,
     knowledgeBaseConfiguration: {
       vectorKnowledgeBaseConfiguration: {
-        embeddingModelArn:
-          "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
+        embeddingModelArn: embeddingsModel,
       },
       type: "VECTOR",
     },
@@ -258,7 +256,7 @@ export const knowledgebase = new aws.bedrock.AgentKnowledgeBase(
 
 new aws.bedrock.AgentDataSource("S3DataSource", {
   knowledgeBaseId: knowledgebase.id,
-  name: "my-s3-data-source",
+  name: "S3DataSource",
   dataSourceConfiguration: {
     type: "S3",
     s3Configuration: {
