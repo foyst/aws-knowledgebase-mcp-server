@@ -6,6 +6,7 @@ https://github.com/daohoangson/aws-knowledge-base-mcp-server
 https://github.com/modelcontextprotocol/servers-archived/tree/main/src/aws-kb-retrieval-server
 
 ## Overview
+![Screenshot of architecture diagram](architecture.png)
 
 This solution provides Retrieval Augmented Generation (RAG) capabilities using an AWS Bedrock Knowledge Base integrated with the Model Context Protocol (MCP). This can be integrated with various MCP-compatible AI agent clients, such as VS Code and Claude desktop, to provide private or specialised knowledge bases for additional context.
 
