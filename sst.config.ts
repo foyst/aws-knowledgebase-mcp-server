@@ -10,9 +10,10 @@ export default $config({
     };
   },
   async run() {
-    await import("./infra/knowledgebase");
+    const { knowledgebase } = await import("./infra/knowledgebase");
     const { mcpServerUrl } = await import("./infra/mcp-server");
     return {
+      knowledgebaseId: knowledgebase.id,
       mcpServerUrl,
     };
   },
