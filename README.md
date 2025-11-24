@@ -6,6 +6,7 @@ https://github.com/daohoangson/aws-knowledge-base-mcp-server
 https://github.com/modelcontextprotocol/servers-archived/tree/main/src/aws-kb-retrieval-server
 
 ## Overview
+
 ![Screenshot of architecture diagram](architecture.png)
 
 This solution provides Retrieval Augmented Generation (RAG) capabilities using an AWS Bedrock Knowledge Base integrated with the Model Context Protocol (MCP). This can be integrated with various MCP-compatible AI agent clients, such as VS Code and Claude desktop, to provide private or specialised knowledge bases for additional context.
@@ -14,6 +15,11 @@ It's made up of two parts:
 
 1. ./infra: The infrastructure code that sets up the Bedrock Knowledge Base, S3 bucket, IAM roles, and OpenSearch Serverless resources. This is deployed using Pulumi and SST.
 2. ./mcp-server: The MCP server code that connects to the Bedrock Knowledge Base and serves as the MCP endpoint over http. This can be run locally through STDIO or deployed as a Lambda function.
+
+## Key mentions
+
+- This uses https://github.com/CodeGenieApp/serverless-express, which seamlessly bridges Express.js applications to AWS Lambda allowing for easy deployment of the MCP server as a serverless function.
+- The server is exposed using a lambda function URL for simplicity, but in a production scenario you would likely want to front this with an API Gateway or Application Load Balancer for better security and management.
 
 ## How to use
 
